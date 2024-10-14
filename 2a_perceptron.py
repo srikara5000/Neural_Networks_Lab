@@ -1,3 +1,4 @@
+# 2a. Design a single unit perceptron for classification of a linearly separable binary dataset without using pre-defined models. Use the Perceptron () from sklearn. 
 import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.linear_model import Perceptron

@@ -1,53 +1,63 @@
+# Write a program to demonstrate the working of different activation functions like Sigmoid, Tanh, RELU and softmax to train neural network.
+
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.utils import to_categorical
 import matplotlib.pyplot as plt
 
-# Load and preprocess the MNIST dataset
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-x_train, x_test = x_train / 255.0, x_test / 255.0  # Normalize the data
-y_train, y_test = to_categorical(y_train, 10), to_categorical(y_test, 10)  # One-hot encoding
+# Define activation functions
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-activation_functions = ['sigmoid', 'tanh', 'relu', 'softmax']
+def tanh(x):
+    return np.tanh(x)
 
-# Dictionary to hold the training histories for each activation function
-histories = {}
+def relu(x):
+    return np.maximum(0, x)
 
-for activation in activation_functions:
-    # Define the model
-    model = Sequential([
-        Flatten(input_shape=(28, 28)),  # Flatten the 28x28 images into vectors of size 784
-        Dense(128, activation=activation),  # Hidden layer with 128 units and the current activation function
-        Dense(10, activation='softmax')  # Output layer with 10 units (one for each digit)
-    ])
-    
-    # Compile the model
-    model.compile(optimizer='adam',
-                  loss='categorical_crossentropy',
-                  metrics=['accuracy'])
-    
-    # Train the model
-    print(f"\nTraining model with {activation} activation function:")
-    history = model.fit(x_train, y_train, epochs=5, validation_data=(x_test, y_test), verbose=2)
-    
-    # Store the training history
-    histories[activation] = history
+def softmax(x):
+    exp_x = np.exp(x - np.max(x))  # Subtract max to prevent overflow
+    return exp_x / exp_x.sum(axis=0)
 
-# Plot the training results
-fig, axes = plt.subplots(2, 2, figsize=(15, 10))
-axes = axes.flatten()
+# Create input values
+x = np.linspace(-10, 10, 400)
 
-for i, activation in enumerate(activation_functions):
-    ax = axes[i]
-    ax.plot(histories[activation].history['accuracy'], label='Training Accuracy')
-    ax.plot(histories[activation].history['val_accuracy'], label='Validation Accuracy')
-    ax.set_title(f'Activation Function: {activation}')
-    ax.set_xlabel('Epoch')
-    ax.set_ylabel('Accuracy')
-    ax.legend()
+# Apply activation functions
+sigmoid_values = sigmoid(x)
+tanh_values = tanh(x)
+relu_values = relu(x)
+
+# For softmax, we use a set of values (instead of point-wise) to illustrate distribution
+softmax_input = np.array([x, x/2, x/3])
+softmax_values = softmax(softmax_input)
+
+# Plotting activation functions
+plt.figure(figsize=(12, 8))
+
+# Sigmoid
+plt.subplot(2, 2, 1)
+plt.plot(x, sigmoid_values, label="Sigmoid")
+plt.title("Sigmoid Function")
+plt.grid(True)
+
+# Tanh
+plt.subplot(2, 2, 2)
+plt.plot(x, tanh_values, label="Tanh", color='orange')
+plt.title("Tanh Function")
+plt.grid(True)
+
+# ReLU
+plt.subplot(2, 2, 3)
+plt.plot(x, relu_values, label="ReLU", color='green')
+plt.title("ReLU Function")
+plt.grid(True)
+
+# Softmax
+plt.subplot(2, 2, 4)
+plt.plot(x, softmax_values[0], label="Softmax - Class 1", color='red')
+plt.plot(x, softmax_values[1], label="Softmax - Class 2", color='blue')
+plt.plot(x, softmax_values[2], label="Softmax - Class 3", color='purple')
+plt.title("Softmax Function")
+plt.legend()
+plt.grid(True)
 
 plt.tight_layout()
 plt.show()
