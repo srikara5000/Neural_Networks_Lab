@@ -28,3 +28,19 @@ for name, (X, y) in datasets.items():
     print(f'Coefficients: {perceptron.coef_}')
     print(f'Intercept: {perceptron.intercept_}')
     print()
+
+# Output:
+# OR Problem:
+# Accuracy: 1.00
+# Coefficients: [[2. 2.]]
+# Intercept: [-1.]
+
+# AND Problem:
+# Accuracy: 1.00
+# Coefficients: [[2. 2.]]
+# Intercept: [-3.]
+
+# XOR Problem:
+# Accuracy: 0.50
+# Coefficients: [[0. 0.]]
+# Intercept: [0.]
