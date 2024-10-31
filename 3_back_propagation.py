@@ -1,133 +1,104 @@
-# Build a deep feed forward ANN by implementing the backpropagation algorithm an test the same using approopriate dataset. Use the hidden layers >=4
+# Build a deep feed forward ANN by implementing the backpropagation algorithm an test the same using appropriate dataset. Use the hidden layers >=4
 
 import numpy as np
-from sklearn.datasets import fetch_openml
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
 
-# Helper Functions
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+class DeepFeedForwardNN:
+    def __init__(self, input_size, hidden_layers, output_size, learning_rate=0.01):
+        self.input_size = input_size
+        self.hidden_layers = hidden_layers
+        self.output_size = output_size
+        self.learning_rate = learning_rate
 
-def sigmoid_derivative(x):
-    return x * (1 - x)
+        # Initialize weights and biases
+        self.weights = []
+        self.biases = []
 
-def softmax(x):
-    exps = np.exp(x - np.max(x))
-    return exps / np.sum(exps, axis=1, keepdims=True)
+        layer_sizes = [input_size] + hidden_layers + [output_size]
 
-def cross_entropy_loss(y_true, y_pred):
-    n_samples = y_true.shape[0]
-    logp = - np.log(y_pred[range(n_samples), y_true.argmax(axis=1)])
-    loss = np.sum(logp) / n_samples
-    return loss
+        for i in range(len(layer_sizes) - 1):
+            self.weights.append(np.random.randn(layer_sizes[i], layer_sizes[i + 1]) * 0.01)
+            self.biases.append(np.zeros((1, layer_sizes[i + 1])))
 
-def cross_entropy_derivative(y_true, y_pred):
-    return y_pred - y_true
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
 
-# Initialize Weights
-def initialize_weights(input_size, hidden_sizes, output_size):
-    weights = []
-    biases = []
+    def sigmoid_derivative(self, x):
+        return x * (1 - x)
     
-    # Input to first hidden layer
-    weights.append(np.random.randn(input_size, hidden_sizes[0]))
-    biases.append(np.zeros((1, hidden_sizes[0])))
+    def forward(self, X):
+        self.a = [X]
+        self.z = []
+        for i in range(len(self.weights)):
+            self.z.append(np.dot(self.a[i], self.weights[i]) + self.biases[i])
+            self.a.append(self.sigmoid(self.z[i]))
+        return self.a[-1]
     
-    # Hidden layers
-    for i in range(1, len(hidden_sizes)):
-        weights.append(np.random.randn(hidden_sizes[i-1], hidden_sizes[i]))
-        biases.append(np.zeros((1, hidden_sizes[i])))
-    
-    # Hidden to output layer
-    weights.append(np.random.randn(hidden_sizes[-1], output_size))
-    biases.append(np.zeros((1, output_size)))
-    
-    return weights, biases
+    def backward(self, X, y):
+        m = X.shape[0]
+        self.d_weights = []
+        self.d_biases = []
 
-# Feedforward
-def feedforward(X, weights, biases):
-    layers = [X]
-    for i in range(len(weights) - 1):
-        Z = np.dot(layers[-1], weights[i]) + biases[i]
-        A = sigmoid(Z)
-        layers.append(A)
-    
-    Z_out = np.dot(layers[-1], weights[-1]) + biases[-1]
-    A_out = softmax(Z_out)
-    layers.append(A_out)
-    
-    return layers
-
-# Backpropagation
-def backpropagation(y_true, weights, biases, layers, learning_rate):
-    y_pred = layers[-1]
-    deltas = [cross_entropy_derivative(y_true, y_pred)]
-    
-    # Backpropagation through hidden layers
-    for i in reversed(range(len(weights) - 1)):
-        delta = np.dot(deltas[-1], weights[i + 1].T) * sigmoid_derivative(layers[i + 1])
-        deltas.append(delta)
-    
-    deltas.reverse()
-    
-    # Update weights and biases
-    for i in range(len(weights)):
-        weights[i] -= learning_rate * np.dot(layers[i].T, deltas[i])
-        biases[i] -= learning_rate * np.sum(deltas[i], axis=0, keepdims=True)
-
-# Train Function
-def train(X, y, input_size, hidden_sizes, output_size, epochs, learning_rate):
-    weights, biases = initialize_weights(input_size, hidden_sizes, output_size)
-    
-    for epoch in range(epochs):
-        layers = feedforward(X, weights, biases)
-        loss = cross_entropy_loss(y, layers[-1])
-        backpropagation(y, weights, biases, layers, learning_rate)
+        # Compute the error in the output layer
+        d_loss = self.a[-1] - y
+        d_a = d_loss * self.sigmoid_derivative(self.a[-1])
         
-        if epoch % 100 == 0:
-            print(f"Epoch {epoch}/{epochs} - Loss: {loss}")
-    
-    return weights, biases
+        # Backpropagate the error
+        for i in reversed(range(len(self.weights))):
+            d_weights = np.dot(self.a[i].T, d_a) / m
+            d_biases = np.sum(d_a, axis=0, keepdims=True) / m
+            self.d_weights.insert(0, d_weights)
+            self.d_biases.insert(0, d_biases)
+            if i > 0:
+                d_a = np.dot(d_a, self.weights[i].T) * self.sigmoid_derivative(self.a[i])
 
-# Predict Function
-def predict(X, weights, biases):
-    layers = feedforward(X, weights, biases)
-    return np.argmax(layers[-1], axis=1)
+    def update_parameters(self):
+        for i in range(len(self.weights)):
+            self.weights[i] -= self.learning_rate * self.d_weights[i]
+            self.biases[i] -= self.learning_rate * self.d_biases[i]
 
-# Load and Prepare Dataset (MNIST)
-def load_mnist():
-    mnist = fetch_openml('mnist_784')
-    X = mnist.data
-    y = mnist.target.astype(int)
-    
-    # Normalize
-    X = X / 255.0
-    
-    # One hot encode labels
-    enc = OneHotEncoder()
-    y = enc.fit_transform(y.reshape(-1, 1)).toarray()
-    
-    return train_test_split(X, y, test_size=0.2, random_state=42)
+    def train(self, X, y, epochs=1000):
+        for epoch in range(epochs):
+            self.forward(X)
+            self.backward(X, y)
+            self.update_parameters()
+            if epoch % 100 == 0:
+                loss = np.mean((self.a[-1] - y) ** 2)
+                print(f'Epoch {epoch}, Loss: {loss}')
 
-# Main Program
-if __name__ == '__main__':
-    # Load data
-    X_train, X_test, y_train, y_test = load_mnist()
-    
-    # Parameters
-    input_size = 784  # 28x28 pixels
-    hidden_sizes = [128, 64, 64, 32]  # 4 hidden layers
-    output_size = 10  # 10 classes (digits 0-9)
-    epochs = 1000
-    learning_rate = 0.01
-    
-    # Train model
-    weights, biases = train(X_train, y_train, input_size, hidden_sizes, output_size, epochs, learning_rate)
-    
-    # Test model
-    y_pred = predict(X_test, weights, biases)
-    y_test_labels = np.argmax(y_test, axis=1)
-    
-    accuracy = np.mean(y_pred == y_test_labels)
-    print(f"Test Accuracy: {accuracy * 100:.2f}%")
+    def predict(self, X):
+        return self.forward(X)
+from sklearn.datasets import make_moons
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Generate synthetic data
+X, y = make_moons(n_samples=1000, noise=0.1, random_state=42)
+y = y.reshape(-1, 1)  # Reshape for binary classification
+
+# Normalize data
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# Initialize and train the network
+nn = DeepFeedForwardNN(input_size=2, hidden_layers=[8, 8, 8, 8], output_size=1, learning_rate=0.01)
+nn.train(X_train, y_train, epochs=1000)
+
+# Test the network
+predictions = nn.predict(X_test)
+accuracy = np.mean((predictions > 0.5) == y_test)
+print(f'Accuracy: {accuracy:.2f}')
+import matplotlib.pyplot as plt
+
+def plot_decision_boundary(pred_func, X, y):
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.01), np.arange(y_min, y_max, 0.01))
+    Z = pred_func(np.c_[xx.ravel(), yy.ravel()])
+    Z = Z.reshape(xx.shape)
+    plt.contourf(xx, yy, Z, alpha=0.8)
+    plt.scatter(X[:, 0], X[:, 1], c=y.ravel(), edgecolors='k', marker='o')
+    plt.show()
+
+plot_decision_boundary(nn.predict, X_test, y_test)

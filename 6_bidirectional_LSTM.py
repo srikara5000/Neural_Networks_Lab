@@ -45,3 +45,8 @@ def predict_review(review):
 # Example usage
 # review = ... # Your tokenized review
 # print(predict_review(review))
+
+# Output: 
+# 781/782 [============================>.]- ETA: 0s - loss: 0.4248 - 
+# accuracy: 0782/782 [==============================] - 26s 33ms/step - loss: 0.4250 - accuracy: 0.8529
+# Test Loss: 0.4250, Test Accuracy: 0.8529
