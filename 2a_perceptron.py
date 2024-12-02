@@ -27,7 +27,7 @@ print(f'Accuracy: {accuracy:.2f}')
 # Optional: Print the model coefficients and intercept
 print(f'Coefficients: {perceptron.coef_}')
 print(f'Intercept: {perceptron.intercept_}')
-
+    
 # Output:
 # Accuracy: 0.93
 # Coefficients: [[ 7.64250985 -2.13502276]]
